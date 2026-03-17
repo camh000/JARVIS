@@ -1,0 +1,28 @@
+# Secrets and credentials
+CREDENTIALS.md
+
+# Investigation scripts (contain SSH passwords in paramiko calls)
+investigate_heartbeat*.py
+
+# Temporary investigation data
+tmp_investigation/
+tmp_*.txt
+
+# Skill files with hardcoded credentials
+lemmy_SKILL.md
+
+# Not relevant to Jarvis evolution
+amd-guide.html
+
+# Claude Code workspace config
+.claude/
+
+# Root-level duplicate files
+SOUL.md
+
+# General
+*.tmp
+*.bak
+*.pyc
+__pycache__/
+.env
