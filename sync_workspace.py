@@ -35,13 +35,22 @@ WORKSPACE_FILES = [
     'HEARTBEAT.md', 'MEMORY.md', 'LEARNINGS.md',
 ]
 
-# Known secrets to strip (patterns)
-SECRET_PATTERNS = [
-    (r'REDACTED_PASSWORD', '<REDACTED_PASSWORD>'),
-    (r'REDACTED_SSH', '<REDACTED_SSH>'),
-    (r'REDACTED_TOKEN', '<REDACTED_TOKEN>'),
-    (r'REDACTED_API_KEY', '<REDACTED_API_KEY>'),
-]
+# Load secret patterns from .secrets file (gitignored)
+# Format: one per line, pattern=REPLACEMENT_LABEL
+# e.g. mysecretpassword=REDACTED_PASSWORD
+SECRETS_FILE = os.path.join(LOCAL_BASE, '.secrets')
+SECRET_PATTERNS = []
+if os.path.exists(SECRETS_FILE):
+    with open(SECRETS_FILE, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                pattern, label = line.split('=', 1)
+                SECRET_PATTERNS.append((re.escape(pattern), f'<{label}>'))
+    if SECRET_PATTERNS:
+        print(f"Loaded {len(SECRET_PATTERNS)} secret patterns from .secrets")
+else:
+    print("WARNING: .secrets file not found — no secret stripping will be applied")
 
 
 def strip_secrets(content: str) -> str:

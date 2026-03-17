@@ -1,5 +1,6 @@
 # Secrets and credentials
 CREDENTIALS.md
+.secrets
 
 # Investigation scripts (contain SSH passwords in paramiko calls)
 investigate_heartbeat*.py
