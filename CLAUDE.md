@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Keep this file ≤ 200 lines.** If it grows beyond that, split sections into separate `.md` files and reference them here (e.g. [KNOWN_ISSUES.md](KNOWN_ISSUES.md)). Do NOT remove information — move it.
+
 ## Project Overview
 
 This is an OpenClaw self-hosted AI assistant deployment on Unraid. The agent is called "Jarvis" and runs in a Docker container connected to LM Studio on a separate Strix Halo PC for local LLM inference.
@@ -132,16 +134,23 @@ This means:
 
 **Current setup:**
 - **Heartbeat interval**: 2h (`agents.defaults.heartbeat.every` in openclaw.json)
-- **Heartbeat prompt**: 4 steps — check memory → explore web → browse Lemmy → journal. References TOOLS.md for Lemmy API commands.
-- **TOOLS.md**: Contains Lemmy REST API reference (curl+jq commands for login, list posts, read comments, search). This is loaded in heartbeat sessions.
-- **HEARTBEAT.md**: Must exist at BOTH `/root/.openclaw/workspace/HEARTBEAT.md` AND `/home/node/clawd/HEARTBEAT.md` (see known issue #15), but is NOT loaded by the agent in heartbeat sessions.
-- **Memory files**: Date-stamped files in `/root/.openclaw/workspace/memory/` (e.g. `2026-03-16.md`).
+- **Heartbeat prompt**: 5 steps — check memory → explore web → browse Lemmy → journal → self-improve. References TOOLS.md for Lemmy API commands.
+- **TOOLS.md**: Contains Lemmy REST API reference (curl+jq commands for login, list posts, read comments, search). Loaded in heartbeat sessions.
+- **HEARTBEAT.md**: Must exist at BOTH `/root/.openclaw/workspace/HEARTBEAT.md` AND `/home/node/clawd/HEARTBEAT.md`, but is NOT loaded by the agent in heartbeat sessions.
+- **Memory files**: Datetime-stamped files in `/root/.openclaw/workspace/memory/` (e.g. `2026-03-17_1430.md`).
 - **MEMORY.md**: Long-term curated memory. Loaded on main session startup only (not in heartbeats or group chats).
 - **SOUL.md**: Dual-mode autonomous persona — Jarvis develops interests organically
 
 ### Core Workspace Files (`/root/.openclaw/workspace/`)
 **Loaded in heartbeats** (MINIMAL_BOOTSTRAP_ALLOWLIST): SOUL.md, AGENTS.md, IDENTITY.md, USER.md, TOOLS.md
-**NOT loaded in heartbeats**: HEARTBEAT.md (human reference only), MEMORY.md (main session only)
+**NOT loaded in heartbeats**: HEARTBEAT.md (human reference only), MEMORY.md (main session only), LEARNINGS.md (read via exec in STEP 5)
+
+### Self-Improvement (enabled 2026-03-17)
+- **STEP 5** in heartbeat prompt lets Jarvis modify: TOOLS.md, SOUL.md, LEARNINGS.md
+- **Cannot modify** (must log in LEARNINGS.md Pending): AGENTS.md, IDENTITY.md, USER.md, openclaw.json
+- **Git versioning** in container workspace — Jarvis commits after changes, Cameron can `git log` / `git revert`
+- **Public repo**: https://github.com/camh000/JARVIS.git — synced via `sync_workspace.py` (secrets stripped)
+- **Sync**: `UNRAID_SSH_PASS='...' python sync_workspace.py --push` to pull workspace + memories and push to GitHub
 
 ### Skills (10/53 ready)
 clawhub, gog, healthcheck, himalaya, lemmy, nano-banana-pro, nano-pdf, skill-creator, weather, self-improving-agent. Skills NOT available in heartbeat sessions. Lemmy skill may show "blocked" in UI — click Refresh.
@@ -159,19 +168,10 @@ cat /mnt/user/appdata/openclaw/config/openclaw.json              # View config
 
 ## Known Issues & Gotchas
 
-1. **Container recreation destroys in-container data** — Use recreation script at `/tmp/recreate_openclaw.sh` to restore.
-2. **pip3 not available in container** — use `uv tool install` instead
-3. **SOUL.md heredoc escaping** — backticks/angle brackets get interpreted by bash. Write file locally first, then docker cp.
-4. **Paramiko Unicode on Windows** — always write SSH output to file with `encoding='utf-8'`, never print directly
-5. **sshpass not available on Windows** — use Python paramiko for all SSH operations
-6. **Workspace path confusion** — TWO workspace mounts: `/mnt/user/appdata/openclaw/config/workspace/` (→ `/root/.openclaw/workspace/`, where OpenClaw reads core files) and `/mnt/user/appdata/openclaw/workspace/` (→ `/home/node/clawd/`). Always write core files to `/root/.openclaw/workspace/`.
-7. **HEARTBEAT.md not loaded in heartbeats** — Excluded from `MINIMAL_BOOTSTRAP_ALLOWLIST`. Instructions must go in `agents.defaults.heartbeat.prompt` in openclaw.json. API references must go in TOOLS.md.
-8. **Skills not loaded in heartbeat sessions** — Tool instructions (Lemmy API commands etc.) must be in TOOLS.md or the heartbeat prompt.
-9. **OpenClaw webchat streaming duplication** — Responses appear twice in Control UI (streamed + final `done` message). Frontend bug, no fix available, cosmetic only.
-10. **Heartbeat LLM timeouts** — If LM Studio model isn't loaded, heartbeats timeout silently every 2h. Check logs for "LLM request timed out".
-11. **LM Studio embedding model timing** — may report "Model does not exist" at startup before model loads
-12. **LM Studio Jinja template location** — In chat view, right-click Advanced Configuration sidebar → "Always Show Prompt Template"
-13. **Google account DISABLED** — See CREDENTIALS.md for restoration steps.
+See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for the full list (17 items). Key ones:
+- **#6 Workspace path confusion** — always write core files to `/root/.openclaw/workspace/` (NOT `/home/node/clawd/`)
+- **#7-8 Heartbeats are limited** — no HEARTBEAT.md, no skills, no MEMORY.md. Use TOOLS.md and heartbeat prompt.
+- **#16 Shell escaping** — use base64 encoding when writing files with `$(...)` via SSH
 
 ## Jarvis Autonomy Roadmap
 
@@ -188,13 +188,13 @@ Brave Search enabled, SOUL.md rewritten with dual-mode persona, HEARTBEAT.md con
 - **Rate limits**: Max 2 posts + 5 comments per heartbeat cycle
 - **Approach**: Lurk first, then comment, then post. lemmy.world has strict bot rules.
 
-### Phase 3 — Memory & Growth (NOT STARTED)
-Persistent interest tracking, RSS monitoring, deeper memory architecture, refine autonomous behavior.
+### Phase 3 — Self-Improvement & Growth (IN PROGRESS)
+✅ Self-improvement enabled (STEP 5, LEARNINGS.md, git versioning, GitHub repo). Remaining: interest tracking, RSS, deeper memory.
 
 ### Phase 4 — Multi-Platform Presence (NOT STARTED)
 Expand to Reddit/forums, cross-platform identity, Jarvis manages own online presence.
 
 ### TODO
+- Wait for next heartbeat → verify LEARNINGS.md updated and Jarvis commits
 - Update SOUL.md — add gog tool knowledge alongside himalaya
-- Google account restoration — see CREDENTIALS.md
-- Consider Ubuntu VM fallback if Docker container becomes too restrictive
+- Google account restoration — see CREDENTIALS.md. Consider Ubuntu VM fallback if container too restrictive.

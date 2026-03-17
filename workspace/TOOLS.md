@@ -81,27 +81,29 @@ CRITICAL RULES:
 - API version is v3. The base URL is always /api/v3/ (NOT /api/v1/ or /api/v2/)
 - NEVER use web_fetch on Lemmy URLs. Always use curl+jq via the exec tool.
 - The login field is "username_or_email" (NOT "username")
-- Read password from credentials file: cat ~/.config/lemmy/credentials.json | jq -r '.password'
+- NEVER guess or fabricate post IDs. ONLY use the `id` field returned by the post listing in Step 2.
 
 ### Step 1: Login (get JWT token)
 
-Read credentials and login (replace INSTANCE_URL with https://programming.dev or https://lemmy.dbzer0.com or https://lemmy.world):
+Set INSTANCE to one of: programming.dev, lemmy.dbzer0.com, lemmy.world
 
-PASS=$(cat ~/.config/lemmy/credentials.json | jq -r '.password') && curl -s -X POST INSTANCE_URL/api/v3/user/login -H "Content-Type: application/json" -d "{\"username_or_email\":\"Jarvis_AIPersona\",\"password\":\"$PASS\"}" | jq -r '.jwt'
-
-Save the returned JWT string in a variable for subsequent commands.
+PASS=$(cat ~/.config/lemmy/credentials.json | jq -r ".instances[\"$INSTANCE\"].password") && USER=$(cat ~/.config/lemmy/credentials.json | jq -r ".instances[\"$INSTANCE\"].username") && JWT=$(curl -s -X POST "https://$INSTANCE/api/v3/user/login" -H "Content-Type: application/json" -d "{\"username_or_email\":\"$USER\",\"password\":\"$PASS\"}" | jq -r '.jwt') && echo "JWT: $JWT"
 
 ### Step 2: Browse posts
 
-curl -s "INSTANCE_URL/api/v3/post/list?community_name=COMMUNITY&sort=Hot&limit=10" -H "Authorization: Bearer JWT_TOKEN" | jq '[.posts[] | {title: .post.name, url: .post.url, score: .counts.score, comments: .counts.comments, creator: .creator.name}]'
+curl -s "https://$INSTANCE/api/v3/post/list?community_name=COMMUNITY&sort=Hot&limit=10" -H "Authorization: Bearer $JWT" | jq '[.posts[] | {id: .post.id, title: .post.name, url: .post.url, score: .counts.score, comments: .counts.comments, creator: .creator.name}]'
+
+IMPORTANT: The `id` field in each result is the REAL post ID. You MUST use these exact IDs when fetching comments in Step 3. Do NOT use any other number.
 
 ### Step 3: Read comments on a post
 
-curl -s "INSTANCE_URL/api/v3/comment/list?post_id=POST_ID&sort=Hot&limit=10" -H "Authorization: Bearer JWT_TOKEN" | jq '[.comments[] | {author: .creator.name, content: .comment.content, score: .counts.score}]'
+Use a post ID from Step 2 results (the `id` field):
+
+curl -s "https://$INSTANCE/api/v3/comment/list?post_id=POST_ID&sort=Hot&limit=10" -H "Authorization: Bearer $JWT" | jq '[.comments[] | {author: .creator.name, content: .comment.content, score: .counts.score}]'
 
 ### Step 4: Search communities
 
-curl -s "INSTANCE_URL/api/v3/search?q=QUERY&type_=Communities&limit=5" | jq '[.communities[] | {name: .community.name, title: .community.title, subscribers: .counts.subscribers}]'
+curl -s "https://$INSTANCE/api/v3/search?q=QUERY&type_=Communities&limit=5" | jq '[.communities[] | {name: .community.name, title: .community.title, subscribers: .counts.subscribers}]'
 
 ### Good communities
 programming.dev: programming, localllama, artificial_intelligence

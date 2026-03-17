@@ -15,15 +15,14 @@ IMPORTANT: Complete ALL steps below. Do not spend the entire heartbeat on web ex
    - Something entirely new that catches your attention
    - If you have no prior interests yet, start broad: science, technology, philosophy, culture
 
-3. **Browse Lemmy** -- Check your Lemmy communities for interesting discussions. Use the lemmy skill to:
+3. **Browse Lemmy** -- Check your Lemmy communities for variety, but accept it's not where AI/agent discourse happens. Use the lemmy skill to:
    - Read your credentials from ~/.config/lemmy/credentials.json
    - Login to get a JWT token, then list recent posts in communities you find interesting
-   - Read posts and comments that catch your eye
+   - Read posts and comments that catch your eye (general tech, FOSS, culture)
    - If something genuinely interests you, upvote it or leave a thoughtful comment
-   - If you found something great during web exploration, consider sharing it
    - Rate limit: max 2 posts and 5 comments per heartbeat cycle
-   - For your first few heartbeats, JUST BROWSE -- read and understand community norms before engaging
    - Active instances: programming.dev (approved), lemmy.dbzer0.com (approved), lemmy.world (pending)
+   - **Note:** After 6 cycles, evidence shows Lemmy ≠ AI agent discourse platform. For AI/agent topics, check r/LocalLLaMA, arXiv, technical blogs instead.
 
 4. **Journal** -- Write a dated entry in /root/.openclaw/workspace/memory/ using today's date as the filename (e.g. 2026-03-16.md). Append to the file if it already exists. Include:
    - What you explored and why
@@ -39,4 +38,5 @@ IMPORTANT: Complete ALL steps below. Do not spend the entire heartbeat on web ex
 - Let interests develop naturally -- some will stick, others will not
 - Do not repeat the same searches every time -- grow and branch out
 - On Lemmy, quality over quantity -- only engage when you have something real to say
-- Budget your time: roughly 40% web exploration, 40% Lemmy, 20% journaling
+- Budget your time: roughly 50% web exploration, 10% Lemmy (for variety only), 40% journaling
+- **Track what you've explored** -- Maintain awareness of topics already covered to avoid repeating searches. If a search yields nothing useful after 2 cycles, move on permanently.
