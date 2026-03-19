@@ -77,7 +77,7 @@ See also: [CREDENTIALS.md](CREDENTIALS.md) — API keys, passwords, OAuth config
 /mnt/user/appdata/openclaw/config/gogcli    -> /root/.config/gogcli
 /mnt/user/appdata/openclaw/config/himalaya  -> /root/.config/himalaya
 ```
-Note: The last 3 mounts are in the updated recreation script but NOT yet active on the running container. They take effect on next container recreation.
+Note: The last 3 mounts are in the updated recreation script but NOT yet active on the running container. They take effect on next container recreation. **Workaround**: use `docker cp` to copy files into the container (e.g. `docker cp /mnt/user/appdata/openclaw/config/lemmy/credentials.json OpenClaw:/root/.config/lemmy/credentials.json`).
 
 ## Container Recreation
 
@@ -133,8 +133,8 @@ This means:
 - **TOOLS.md is the best place for API references** that Jarvis needs during heartbeats (Lemmy curl commands, etc.)
 
 **Current setup:**
-- **Heartbeat interval**: 2h (`agents.defaults.heartbeat.every` in openclaw.json)
-- **Heartbeat prompt**: 5 steps — check memory → explore web → browse Lemmy → journal → self-improve. References TOOLS.md for Lemmy API commands.
+- **Heartbeat interval**: 1h (`agents.defaults.heartbeat.every` in openclaw.json), timeout: 20min (`agents.defaults.timeoutSeconds: 1200`). **IMPORTANT**: Changing timeoutSeconds requires `docker restart OpenClaw` — hot-reload doesn't update the runtime snapshot (see KNOWN_ISSUES #27).
+- **Heartbeat prompt**: 6 steps — check memory → explore → Lemmy (comment) → journal (≤60 lines) → act & improve (Action Board) → commit. Budget: 25% explore, 10% Lemmy, 15% journal, 50% implementation. Key rules: "DONE means DONE" (no checking off blocked tasks), "IMPLEMENT means PERSIST" (journal entries don't count), Action Board for self-tasks vs Pending for change requests.
 - **TOOLS.md**: Contains Lemmy REST API reference (curl+jq commands for login, list posts, read comments, search). Loaded in heartbeat sessions.
 - **HEARTBEAT.md**: Must exist at BOTH `/root/.openclaw/workspace/HEARTBEAT.md` AND `/home/node/clawd/HEARTBEAT.md`, but is NOT loaded by the agent in heartbeat sessions.
 - **Memory files**: Datetime-stamped files in `/root/.openclaw/workspace/memory/` (e.g. `2026-03-17_1430.md`).
@@ -146,8 +146,8 @@ This means:
 **NOT loaded in heartbeats**: HEARTBEAT.md (human reference only), MEMORY.md (main session only), LEARNINGS.md (read via exec in STEP 5)
 
 ### Self-Improvement (enabled 2026-03-17)
-- **STEP 5** in heartbeat prompt lets Jarvis modify: TOOLS.md, SOUL.md, LEARNINGS.md
-- **Cannot modify** (must log in LEARNINGS.md Pending): AGENTS.md, IDENTITY.md, USER.md, openclaw.json
+- **STEP 5 (ACT & IMPROVE)** in heartbeat prompt: Jarvis picks tasks from Action Board in LEARNINGS.md, can modify TOOLS.md, SOUL.md, LEARNINGS.md
+- **Cannot modify** (must log in LEARNINGS.md Pending): AGENTS.md, IDENTITY.md, USER.md, HEARTBEAT.md, openclaw.json
 - **Git versioning** in container workspace — Jarvis commits after changes, Cameron can `git log` / `git revert`
 - **Public repo**: https://github.com/camh000/JARVIS.git — synced via `sync_workspace.py` (secrets stripped)
 - **Sync**: `UNRAID_SSH_PASS='...' python sync_workspace.py --push` to pull workspace + memories and push to GitHub
@@ -161,17 +161,18 @@ docker logs OpenClaw --tail 50 2>&1          # Container logs
 docker exec OpenClaw openclaw skills          # Skills status
 docker exec OpenClaw openclaw health          # Container health
 docker exec OpenClaw openclaw sessions        # List sessions
-docker exec OpenClaw openclaw heartbeat last  # Heartbeat status
+docker exec OpenClaw cat /root/.openclaw/workspace/heartbeat-state.json         # Heartbeat metrics
 docker exec OpenClaw curl -s http://100.99.13.30:1234/v1/models  # LM Studio connectivity
 cat /mnt/user/appdata/openclaw/config/openclaw.json              # View config
 ```
 
 ## Known Issues & Gotchas
 
-See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for the full list (17 items). Key ones:
+See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for the full list (30 items). Key ones:
 - **#6 Workspace path confusion** — always write core files to `/root/.openclaw/workspace/` (NOT `/home/node/clawd/`)
 - **#7-8 Heartbeats are limited** — no HEARTBEAT.md, no skills, no MEMORY.md. Use TOOLS.md and heartbeat prompt.
 - **#16 Shell escaping** — use base64 encoding when writing files with `$(...)` via SSH
+- **#27 timeoutSeconds requires restart** — hot-reload doesn't update runtime snapshot. Must `docker restart OpenClaw` after changing.
 
 ## Jarvis Autonomy Roadmap
 
@@ -184,17 +185,18 @@ Brave Search enabled, SOUL.md rewritten with dual-mode persona, HEARTBEAT.md con
 - **Username**: Jarvis_AIPersona (bot account)
 - **Skill**: curl + jq REST API skill at `/mnt/user/appdata/openclaw/config/skills/lemmy/SKILL.md`
 - **TOOLS.md**: Contains Lemmy API quick reference (curl+jq commands) — this is the source Jarvis uses during heartbeats since skills aren't loaded
-- **Heartbeat prompt**: Simplified to reference TOOLS.md instead of duplicating API commands
 - **Rate limits**: Max 2 posts + 5 comments per heartbeat cycle
-- **Approach**: Lurk first, then comment, then post. lemmy.world has strict bot rules.
+- **Approach**: Commenting mostly blocked. 3 successful comments (cycles 9-11), then Cloudflare + platform bot restrictions. New errors in cycle 26: `language_not_allowed`, `invalid_bot_action`. Jarvis accepted the limitation in cycle 14.
+- **Credentials**: Rotated 2026-03-17 after GitHub leak. Container mount not yet active — use `docker cp` to update.
 
 ### Phase 3 — Self-Improvement & Growth (IN PROGRESS)
-✅ Self-improvement enabled (STEP 5, LEARNINGS.md, git versioning, GitHub repo). Remaining: interest tracking, RSS, deeper memory.
+✅ Self-improvement enabled (STEP 5, LEARNINGS.md, git versioning, GitHub repo). 26 heartbeat cycles completed (as of 2026-03-19). Jarvis created 8 utility scripts, self-corrected a 4-cycle stagnation pattern, and maintains honest Action Board tracking. Remaining: interest tracking, RSS, deeper memory.
 
 ### Phase 4 — Multi-Platform Presence (NOT STARTED)
 Expand to Reddit/forums, cross-platform identity, Jarvis manages own online presence.
 
 ### TODO
-- Wait for next heartbeat → verify LEARNINGS.md updated and Jarvis commits
 - Update SOUL.md — add gog tool knowledge alongside himalaya
 - Google account restoration — see CREDENTIALS.md. Consider Ubuntu VM fallback if container too restrictive.
+- ~~Investigate LM Studio timeout pattern~~ — Fixed: `agents.defaults.timeoutSeconds: 1200` + container restart (2026-03-19)
+- Monitor next heartbeat to confirm 20-min timeout is active (should show `timeoutMs=1200000` in logs)
