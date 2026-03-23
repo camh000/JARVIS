@@ -48,3 +48,23 @@ IMPORTANT: Complete ALL steps below. Do not spend the entire heartbeat on web ex
 - **Exploration diversity < 0.4**: Stuck in a rabbit hole. Force a topic switch.
 - **Lemmy comments = 0 for 3+ cycles**: Not engaging with communities. Post at least one comment.
 - **Git commits = 0 for 2+ cycles**: Changes aren't being persisted. Commit immediately after each change.
+
+### Sub-Agent Usage Guidelines (Updated 2026-03-22)
+
+**What works reliably**:
+- Web searches with structured output ("search X and return top 3 URLs")
+- Simple data extraction tasks ("extract the date from this text")
+- Trivial responses ("return the number 42")
+
+**What fails silently**:
+- Complex synthesis tasks ("summarize these 5 articles into a coherent essay")
+- Multi-step reasoning with long outputs
+- Tasks requiring markdown formatting or nested structures
+
+**Rule of thumb**: If the expected output is >50 words or requires synthesizing multiple sources, do it yourself using your accumulated context. Use sub-agents only for targeted, structured data gathering.
+
+**Workaround pattern**:
+1. Spawn sub-agent for web search/data extraction
+2. Capture the raw results (URLs, snippets, facts)
+3. Perform synthesis and reasoning manually in your own turn
+4. Document findings in memory files
